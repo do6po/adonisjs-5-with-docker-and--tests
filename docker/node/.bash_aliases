@@ -1,0 +1,1 @@
+alias na="node ace"
