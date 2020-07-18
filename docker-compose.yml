@@ -1,0 +1,77 @@
+version: '3'
+
+services:
+  web:
+    image: webdevops/nginx:alpine
+    container_name: ${APP_NAME}_web
+    hostname: ${APP_NAME}_web
+    environment:
+      WEB_DOCUMENT_ROOT: /app/public
+      WEB_PHP_SOCKET: ${APP_NAME}_php:9000
+      LOG_STDOUT: /app/storage/logs/web.access.log
+      LOG_STDERR: /app/storage/logs/web.errors.log
+    volumes:
+      - ./:/app:rw
+    working_dir: /app
+    ports:
+      - ${DOCKER_BRIDGE}:80:80
+      - ${DOCKER_BRIDGE}:443:443
+    depends_on:
+      - php
+      - node
+    restart: always
+
+  db:
+    image: postgres:12.1-alpine
+    container_name: ${APP_NAME}_db
+    hostname: ${APP_NAME}_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - ${DOCKER_BRIDGE}:5432:5432
+    volumes:
+      - ./storage/postgresql:/var/lib/postgresql/data
+
+  db_testing:
+    image: postgres:12.1-alpine
+    container_name: ${APP_NAME}_db_testing
+    hostname: ${APP_NAME}_db_testing
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}_testing
+    ports:
+      - ${DOCKER_BRIDGE}:5433:5432
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  cache:
+    image: nbtri/alpine-redis
+    restart: always
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    container_name: ${APP_NAME}_cache
+    hostname: ${APP_NAME}_cache
+    ports:
+      - ${DOCKER_BRIDGE}:6379:6379
+
+  node:
+    image: node:12-slim
+    restart: always
+    container_name: ${APP_NAME}_node
+    hostname: ${APP_NAME}_node
+    working_dir: /app
+    volumes:
+      - ./:/app:rw,cached
+    tty: true
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_NETWORK}
