@@ -2,52 +2,53 @@ version: '3'
 
 services:
   web:
-    image: webdevops/nginx:alpine
+    image: jwilder/nginx-proxy:alpine
     container_name: ${APP_NAME}_web
     hostname: ${APP_NAME}_web
     environment:
-      WEB_DOCUMENT_ROOT: /app/public
-      WEB_PHP_SOCKET: ${APP_NAME}_php:9000
-      LOG_STDOUT: /app/storage/logs/web.access.log
-      LOG_STDERR: /app/storage/logs/web.errors.log
+      PROXY_HOST: ${DOCKER_BRIDGE}
+      PROXY_PORT: ${PORT}
+      ACCESS_LOG: /var/www/storage/logs/access.log
+      ERROR_LOG: /var/www/storage/logs/errors.log
     volumes:
-      - ./:/app:rw
-    working_dir: /app
+      - ./:/var/www:rw,cached
+      - ./docker/nginx/app.conf:/etc/nginx/conf.d/app.conf
+      - /var/run/docker.sock:/tmp/docker.sock:ro
     ports:
       - ${DOCKER_BRIDGE}:80:80
-      - ${DOCKER_BRIDGE}:443:443
     depends_on:
-      - php
       - node
     restart: always
 
   db:
-    image: postgres:12.1-alpine
+    image: mysql:5.7.28
     container_name: ${APP_NAME}_db
     hostname: ${APP_NAME}_db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
     ports:
-      - ${DOCKER_BRIDGE}:5432:5432
+      - ${DOCKER_BRIDGE}:${DB_PORT}:${DB_PORT}
     volumes:
-      - ./storage/postgresql:/var/lib/postgresql/data
+      - ./storage/mysql:/var/lib/mysql
 
   db_testing:
-    image: postgres:12.1-alpine
+    image: mysql:5.7.28
     container_name: ${APP_NAME}_db_testing
     hostname: ${APP_NAME}_db_testing
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}_testing
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
     ports:
-      - ${DOCKER_BRIDGE}:5433:5432
+      - ${DOCKER_BRIDGE}:3307:${DB_PORT}
     tmpfs:
-      - /var/lib/postgresql/data
+      - /var/lib/mysql
 
   cache:
     image: nbtri/alpine-redis
@@ -65,9 +66,16 @@ services:
     container_name: ${APP_NAME}_node
     hostname: ${APP_NAME}_node
     working_dir: /app
+    ports:
+      - ${DOCKER_BRIDGE}:3333:3333
     volumes:
       - ./:/app:rw,cached
+    command: ["/app/docker/node/start.sh"]
     tty: true
+    depends_on:
+      - db
+      - db_testing
+      - cache
 
 networks:
   default:
