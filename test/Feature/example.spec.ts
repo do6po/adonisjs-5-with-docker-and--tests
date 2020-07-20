@@ -4,7 +4,7 @@ import supertest from 'supertest'
 
 const BASE_URL = `http://${process.env.HOST}:${process.env.PORT}`
 
-test.group('Welcome', () => {
+test.group('Site home', () => {
   test('ensure home page works', async (assert) => {
     /**
      * Make request
@@ -20,6 +20,6 @@ test.group('Welcome', () => {
 
     const title = document.querySelector('.title')
     assert.exists(title)
-    assert.equal(title!.textContent!.trim(), 'It Works!')
+    assert.equal(title!.textContent!.trim(), 'My title')
   })
 })

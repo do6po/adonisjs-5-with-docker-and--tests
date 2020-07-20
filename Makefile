@@ -44,6 +44,9 @@ db_testing_bash:
 node_bash:
 	$(dc) exec $(node) bash
 
+start_watch:
+	${dc} exec $(node) node ace serve --watch
+
 restart:
 	$(dc) restart
 

@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import {join} from 'path'
+import {join, isAbsolute, sep} from 'path'
 import getPort from 'get-port'
 import {configure} from 'japa'
 import sourceMapSupport from 'source-map-support'
@@ -7,9 +7,24 @@ import dotenv from 'dotenv'
 
 dotenv.config({path: '.env.testing'})
 
-process.env.NODE_ENV = 'testing'
 process.env.ADONIS_ACE_CWD = join(__dirname, '..')
 sourceMapSupport.install({handleUncaughtExceptions: false})
+
+// Add this method to the file
+function getTestFiles () {
+  let userDefined = process.argv.slice(2)[0]
+  if (!userDefined) {
+    return 'build/test/**/*.spec.js'
+  }
+
+  if (isAbsolute(userDefined)) {
+    userDefined = userDefined.endsWith('.ts')
+      ? userDefined.replace(`${join(__dirname, '..')}${sep}`, '')
+      : userDefined.replace(`${join(__dirname)}${sep}`, '')
+  }
+
+  return `build/${userDefined.replace(/\.ts$|\.js$/, '')}.js`
+}
 
 async function startHttpServer() {
   const {Ignitor} = await import('@adonisjs/core/build/src/Ignitor')
@@ -21,9 +36,7 @@ async function startHttpServer() {
  * Configure test runner
  */
 configure({
-  files: [
-    'build/test/**/*.spec.js',
-  ],
+  files: getTestFiles(),
   before: [
     startHttpServer,
   ],

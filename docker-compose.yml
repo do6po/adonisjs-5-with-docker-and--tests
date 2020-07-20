@@ -72,7 +72,6 @@ services:
       - ./:/app:rw,cached
       - ./docker/node/.bash_aliases:/root/.bash_aliases
       - ./docker/node/.bashrc:/root/.bashrc
-    command: ["/app/docker/node/start.sh"]
     tty: true
     depends_on:
       - db
