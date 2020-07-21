@@ -14,7 +14,7 @@ sourceMapSupport.install({handleUncaughtExceptions: false})
 function getTestFiles () {
   let userDefined = process.argv.slice(2)[0]
   if (!userDefined) {
-    return 'build/test/**/*.spec.js'
+    return 'build/tests/**/*.spec.js'
   }
 
   if (isAbsolute(userDefined)) {
